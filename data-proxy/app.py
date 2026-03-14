@@ -18,8 +18,8 @@ def post_temperatura():
         payload = request.get_json()
 
         postTime = datetime.now()
-        temperatureEntry = dict['value': payload.get("temperatura"), 'timestamp': postTime]
-        humidityEntry = dict['value': payload.get("humidade"), 'timestamp': postTime]
+        temperatureEntry = {'value': payload.get("temperatura"), 'timestamp': postTime}
+        humidityEntry = {'value': payload.get("humidade"), 'timestamp': postTime}
 
         dataHistory['temperatura'].append(temperatureEntry)
         dataHistory['humidade'].append(humidityEntry)
@@ -36,7 +36,7 @@ def post_vento():
         payload = request.get_json()
 
         postTime = datetime.now()
-        temperatureEntry = dict['value': payload.get("velocidade"), 'timestamp': postTime]
+        temperatureEntry = {'value': payload.get("velocidade"), 'timestamp': postTime}
 
         dataHistory['velocidade'].append(temperatureEntry)
         
