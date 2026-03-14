@@ -53,8 +53,8 @@ def get_status():
     for measureType in dataHistory.keys():
         if len(dataHistory[measureType]) > 0:
             result[measureType] = {
-                "valor": dataHistory[measureType][-1].value,
-                "expirado": is_expired(dataHistory[measureType][-1].timestamp)
+                "valor": dataHistory[measureType][-1]['value'],
+                "expirado": is_expired(dataHistory[measureType][-1]['timestamp'])
             }
     
     return jsonify(result)
