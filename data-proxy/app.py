@@ -49,17 +49,19 @@ def post_vento():
 @app.route("/api/status", methods=["GET"])
 def get_status():
     result = {}
+    
     for measureType in dataHistory.keys():
-        result[measureType] = {
-            "valor": dataHistory[measureType][-1].value,
-            "expirado": is_expired(dataHistory[measureType][-1].timestamp)
-        }
+        if len(dataHistory[measureType]) > 0:
+            result[measureType] = {
+                "valor": dataHistory[measureType][-1].value,
+                "expirado": is_expired(dataHistory[measureType][-1].timestamp)
+            }
     
     return jsonify(result)
 
 def pruneHistoryIfNeeded():
     for measureType in dataHistory.keys():
-        if dataHistory[measureType].count >= MAX_HISTORY_LENGTH:
+        if len(dataHistory[measureType]) >= MAX_HISTORY_LENGTH:
             del dataHistory[measureType][0]
 
 
