@@ -3,17 +3,9 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-# Armazena os dados e timestamps
-data_store = {
-    "temperatura": None,
-    "humidade": None,
-    "vento": None
-}
-timestamps = {
-    "temperatura": None,
-    "humidade": None,
-    "vento": None
-}
+MAX_HISTORY_LENGTH = 524288
+
+dataHistory = {'temperatura': [], 'humidade': [], 'velocidade': []}
 
 def is_expired(timestamp):
     if timestamp is None:
@@ -24,10 +16,16 @@ def is_expired(timestamp):
 def post_temperatura():
     try:
         payload = request.get_json()
-        data_store["temperatura"] = payload.get("temperatura")
-        data_store["humidade"] = payload.get("humidade")
-        timestamps["temperatura"] = datetime.now()
-        timestamps["humidade"] = datetime.now()
+
+        postTime = datetime.now()
+        temperatureEntry = dict['value': payload.get("temperatura"), 'timestamp': postTime]
+        humidityEntry = dict['value': payload.get("humidade"), 'timestamp': postTime]
+
+        dataHistory['temperatura'].append(temperatureEntry)
+        dataHistory['humidade'].append(humidityEntry)
+
+        pruneHistoryIfNeeded()
+
         return "OK", 200
     except Exception as e:
         return f"Erro: {str(e)}", 400
@@ -36,8 +34,14 @@ def post_temperatura():
 def post_vento():
     try:
         payload = request.get_json()
-        data_store["vento"] = payload.get("velocidade")
-        timestamps["vento"] = datetime.now()
+
+        postTime = datetime.now()
+        temperatureEntry = dict['value': payload.get("velocidade"), 'timestamp': postTime]
+
+        dataHistory['velocidade'].append(temperatureEntry)
+        
+        pruneHistoryIfNeeded()
+        
         return "OK", 200
     except Exception as e:
         return f"Erro: {str(e)}", 400
@@ -45,12 +49,19 @@ def post_vento():
 @app.route("/api/status", methods=["GET"])
 def get_status():
     result = {}
-    for tipo in data_store:
-        result[tipo] = {
-            "valor": data_store[tipo],
-            "expirado": is_expired(timestamps[tipo])
+    for measureType in dataHistory.keys():
+        result[measureType] = {
+            "valor": dataHistory[measureType][-1].value,
+            "expirado": is_expired(dataHistory[measureType][-1].timestamp)
         }
+    
     return jsonify(result)
+
+def pruneHistoryIfNeeded():
+    for measureType in dataHistory.keys():
+        if dataHistory[measureType].count >= MAX_HISTORY_LENGTH:
+            del dataHistory[measureType][0]
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
