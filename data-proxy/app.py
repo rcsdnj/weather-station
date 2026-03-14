@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 MAX_HISTORY_LENGTH = 524288
 
-dataHistory = {'temperatura': [], 'humidade': [], 'velocidade': []}
+dataHistory = {'temperatura': [], 'humidade': [], 'vento': []}
 
 def is_expired(timestamp):
     if timestamp is None:
@@ -38,7 +38,7 @@ def post_vento():
         postTime = datetime.now()
         temperatureEntry = {'value': payload.get("velocidade"), 'timestamp': postTime}
 
-        dataHistory['velocidade'].append(temperatureEntry)
+        dataHistory['vento'].append(temperatureEntry)
         
         pruneHistoryIfNeeded()
         
