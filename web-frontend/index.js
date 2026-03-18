@@ -1,6 +1,9 @@
 let unidade = "kmh";
 let ultimaLeitura = null;
 
+const metricsOrder = ["vento", "temperatura", "humidade"];
+const windowsOrder = ["3h", "6h", "12h", "24h"];
+
 document.querySelectorAll('input[name="unidade"]').forEach(el => {
   el.addEventListener("change", e => {
     unidade = e.target.value;
@@ -32,28 +35,52 @@ function formatMetricValue(metricName, value) {
     const converted = convertWindValue(value);
     return converted !== null ? converted.toFixed(1) : "--";
   }
-
   return formatNumber(value, 1);
 }
 
 function getMetricLabel(metricName) {
   switch (metricName) {
     case "vento":
-      return `Velocidade do Vento (${getWindUnitLabel()})`;
+      return "Velocidade do vento";
     case "temperatura":
-      return "Temperatura (°C)";
+      return "Temperatura";
     case "humidade":
-      return "Umidade (%)";
+      return "Humidade";
     default:
       return metricName;
   }
 }
 
-function renderStatsTable(data) {
-  const tbody = document.getElementById("stats-body");
-  const metricsOrder = ["vento", "temperatura", "humidade"];
-  const windowsOrder = ["3h", "6h", "12h", "24h"];
+function getMetricUnit(metricName) {
+  switch (metricName) {
+    case "vento":
+      return getWindUnitLabel();
+    case "temperatura":
+      return "°C";
+    case "humidade":
+      return "%";
+    default:
+      return "";
+  }
+}
 
+function getWindowLabel(windowKey) {
+  switch (windowKey) {
+    case "3h":
+      return "Últimas 3h";
+    case "6h":
+      return "Últimas 6h";
+    case "12h":
+      return "Últimas 12h";
+    case "24h":
+      return "Últimas 24h";
+    default:
+      return windowKey;
+  }
+}
+
+function renderStatsCards(data) {
+  const container = document.getElementById("stats-cards");
   let html = "";
 
   metricsOrder.forEach(metricName => {
@@ -64,26 +91,53 @@ function renderStatsTable(data) {
 
     const stats = metric.estatisticas;
 
-    windowsOrder.forEach((windowKey, index) => {
+    html += `
+      <article class="stats-card stats-card-${metricName}">
+        <div class="stats-card-header">
+          <h3>${getMetricLabel(metricName)}</h3>
+          <span class="stats-unit">${getMetricUnit(metricName)}</span>
+        </div>
+
+        <div class="stats-table-wrapper">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th>Janela</th>
+                <th>Máx</th>
+                <th>Média</th>
+                <th>Mín</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    windowsOrder.forEach(windowKey => {
       const windowStats = stats[windowKey] || {};
-      const metricLabel = getMetricLabel(metricName);
 
       html += `
         <tr>
-          ${index === 0 ? `<td rowspan="${windowsOrder.length}" class="metric-name">${metricLabel}</td>` : ""}
-          <td>${windowKey}</td>
-          <td>${formatMetricValue(metricName, windowStats.max)}</td>
-          <td>${formatMetricValue(metricName, windowStats.media)}</td>
-          <td>${formatMetricValue(metricName, windowStats.min)}</td>
+          <td class="window-cell">${getWindowLabel(windowKey)}</td>
+          <td><span class="stat-pill stat-pill-max">${formatMetricValue(metricName, windowStats.max)}</span></td>
+          <td><span class="stat-pill stat-pill-avg">${formatMetricValue(metricName, windowStats.media)}</span></td>
+          <td><span class="stat-pill stat-pill-min">${formatMetricValue(metricName, windowStats.min)}</span></td>
         </tr>
       `;
     });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
   });
 
-  tbody.innerHTML = html || `
-    <tr>
-      <td colspan="5">Sem dados disponíveis.</td>
-    </tr>
+  container.innerHTML = html || `
+    <div class="stats-card">
+      <div class="stats-card-header">
+        <h3>Sem dados disponíveis</h3>
+      </div>
+    </div>
   `;
 }
 
@@ -106,7 +160,7 @@ function atualizarValores(data) {
   document.getElementById("hum").innerText = Number.isFinite(hum) ? hum.toFixed(1) : "--";
   document.getElementById("unidade").innerText = getWindUnitLabel();
 
-  renderStatsTable(data);
+  renderStatsCards(data);
 }
 
 function fetchData() {
@@ -116,10 +170,12 @@ function fetchData() {
     .catch((e) => {
       console.log("erro: " + e);
       document.getElementById("stale").style.display = "block";
-      document.getElementById("stats-body").innerHTML = `
-        <tr>
-          <td colspan="5">Erro ao carregar dados.</td>
-        </tr>
+      document.getElementById("stats-cards").innerHTML = `
+        <div class="stats-card">
+          <div class="stats-card-header">
+            <h3>Erro ao carregar dados</h3>
+          </div>
+        </div>
       `;
     });
 }

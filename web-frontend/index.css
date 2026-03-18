@@ -1,73 +1,367 @@
+:root {
+  --bg: #eef3f7;
+  --panel: #ffffff;
+  --panel-soft: #f8fafc;
+  --text: #18212b;
+  --muted: #66758a;
+  --border: #dbe4ee;
+  --shadow: 0 10px 30px rgba(18, 38, 63, 0.08);
+
+  --wind: #c88a00;
+  --wind-soft: #fff3d6;
+
+  --temp: #c94b45;
+  --temp-soft: #ffe2df;
+
+  --hum: #2b6cb0;
+  --hum-soft: #deefff;
+
+  --max-bg: #fff0d8;
+  --avg-bg: #e8f2ff;
+  --min-bg: #e5f6ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   margin: 0;
-  padding: 1em;
-  background: #f0f0f0;
+  background: linear-gradient(180deg, #f4f7fa 0%, var(--bg) 100%);
+  color: var(--text);
 }
 
 .container {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 1em;
+  padding: 20px;
 }
 
-.box {
-  background: white;
-  padding: 1em;
-  margin-bottom: 1em;
-  border-radius: 8px;
-  box-shadow: 0 0 5px #ccc;
+.page-header {
+  margin-bottom: 18px;
 }
 
-label {
-  margin-right: 1em;
+.page-header h1 {
+  margin: 0 0 6px;
+  font-size: 2rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.current-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metric-card,
+.panel,
+.stats-card {
+  background: var(--panel);
+  border: 1px solid rgba(219, 228, 238, 0.9);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.metric-card {
+  padding: 18px 18px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  border-radius: 18px 0 0 18px;
+}
+
+.metric-card-wind::before {
+  background: var(--wind);
+}
+
+.metric-card-temp::before {
+  background: var(--temp);
+}
+
+.metric-card-hum::before {
+  background: var(--hum);
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metric-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.metric-unit {
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.panel {
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.panel-header h2,
+.controls-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+}
+
+.panel-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.control-label {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-right: 8px;
+}
+
+.unit-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.radio-pill {
+  position: relative;
+}
+
+.radio-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-pill span {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-soft);
+  color: var(--text);
+  font-size: 0.94rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.radio-pill input:checked + span {
+  background: #dfeeff;
+  border-color: #9fc2ef;
+  color: #12406f;
+  font-weight: 600;
 }
 
 .stale {
-  color: red;
-  font-weight: bold;
+  margin: 14px 0 0;
+  color: #b42318;
+  background: #ffe4e1;
+  border: 1px solid #f4b6b0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 600;
   display: none;
 }
 
-.table-wrapper {
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.stats-card {
+  padding: 16px;
+}
+
+.stats-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stats-card-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.stats-unit {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stats-card-vento .stats-card-header h3 {
+  color: var(--wind);
+}
+
+.stats-card-temperatura .stats-card-header h3 {
+  color: var(--temp);
+}
+
+.stats-card-humidade .stats-card-header h3 {
+  color: var(--hum);
+}
+
+.stats-table-wrapper {
   overflow-x: auto;
 }
 
 .stats-table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.5em;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  min-width: 280px;
 }
 
-.stats-table th,
-.stats-table td {
-  border: 1px solid #ddd;
-  padding: 0.65em;
-  text-align: center;
-}
-
-.stats-table th {
-  background: #f7f7f7;
-}
-
-.stats-table td.metric-name {
-  font-weight: bold;
+.stats-table thead th {
   text-align: left;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 10px 6px;
+}
+
+.stats-table tbody td {
+  padding: 0 10px;
   vertical-align: middle;
 }
 
-.stats-table tbody tr:nth-child(even) {
-  background: #fafafa;
+.stats-table tbody tr {
+  background: var(--panel-soft);
 }
 
-@media (max-width: 600px) {
-  .box p {
-    font-size: 0.9em;
+.stats-table tbody tr td:first-child {
+  border-radius: 12px 0 0 12px;
+  padding-left: 12px;
+}
+
+.stats-table tbody tr td:last-child {
+  border-radius: 0 12px 12px 0;
+  padding-right: 12px;
+}
+
+.window-cell {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.stat-pill {
+  display: inline-block;
+  min-width: 58px;
+  text-align: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.93rem;
+}
+
+.stat-pill-max {
+  background: var(--max-bg);
+}
+
+.stat-pill-avg {
+  background: var(--avg-bg);
+}
+
+.stat-pill-min {
+  background: var(--min-bg);
+}
+
+@media (max-width: 900px) {
+  .current-grid,
+  .stats-cards {
+    grid-template-columns: 1fr;
   }
 
-  .stats-table th,
-  .stats-table td {
-    font-size: 0.9em;
-    padding: 0.5em;
+  .metric-value {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 14px;
+  }
+
+  .page-header h1 {
+    font-size: 1.65rem;
+  }
+
+  .panel,
+  .metric-card,
+  .stats-card {
+    border-radius: 16px;
+  }
+
+  .stats-card {
+    padding: 14px;
+  }
+
+  .stats-table {
+    min-width: 0;
+    border-spacing: 0 6px;
+  }
+
+  .stats-table thead th {
+    font-size: 0.78rem;
+    padding: 0 8px 6px;
+  }
+
+  .stats-table tbody td {
+    padding: 0 8px;
+  }
+
+  .window-cell {
+    font-size: 0.9rem;
+  }
+
+  .stat-pill {
+    min-width: 52px;
+    padding: 6px 8px;
+    font-size: 0.88rem;
+  }
+
+  .controls-row,
+  .unit-selector {
+    align-items: flex-start;
   }
 }

@@ -8,40 +8,73 @@
 </head>
 <body>
   <div class="container">
-    <h1>Estação Meteorológica</h1>
+    <header class="page-header">
+      <h1>Estação Meteorológica</h1>
+      <p class="subtitle">Leituras atuais e resumo das últimas horas</p>
+    </header>
 
-    <div class="box">
-      <p><strong>Velocidade do Vento:</strong> <span id="vel">--</span> <span id="unidade">km/h</span></p>
-      <p><strong>Temperatura:</strong> <span id="temp">--</span> °C</p>
-      <p><strong>Umidade:</strong> <span id="hum">--</span> %</p>
-      <p class="stale" id="stale">⚠ Dados desatualizados</p>
-      <p>
-        <label><input type="radio" name="unidade" value="kmh" checked> km/h</label>
-        <label><input type="radio" name="unidade" value="ms"> m/s</label>
-      </p>
-    </div>
-
-    <div class="box">
-      <h2>Estatísticas</h2>
-      <div class="table-wrapper">
-        <table class="stats-table">
-          <thead>
-            <tr>
-              <th>Métrica</th>
-              <th>Janela</th>
-              <th>Máximo</th>
-              <th>Média</th>
-              <th>Mínimo</th>
-            </tr>
-          </thead>
-          <tbody id="stats-body">
-            <tr>
-              <td colspan="5">Carregando...</td>
-            </tr>
-          </tbody>
-        </table>
+    <section class="current-grid">
+      <div class="metric-card metric-card-wind">
+        <div class="metric-label">Velocidade do vento</div>
+        <div class="metric-value-row">
+          <span id="vel" class="metric-value">--</span>
+          <span id="unidade" class="metric-unit">km/h</span>
+        </div>
       </div>
-    </div>
+
+      <div class="metric-card metric-card-temp">
+        <div class="metric-label">Temperatura</div>
+        <div class="metric-value-row">
+          <span id="temp" class="metric-value">--</span>
+          <span class="metric-unit">°C</span>
+        </div>
+      </div>
+
+      <div class="metric-card metric-card-hum">
+        <div class="metric-label">Humidade</div>
+        <div class="metric-value-row">
+          <span id="hum" class="metric-value">--</span>
+          <span class="metric-unit">%</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel controls-panel">
+      <div class="controls-header">
+        <h2>Preferências</h2>
+      </div>
+
+      <div class="controls-row">
+        <div class="unit-selector">
+          <span class="control-label">Unidade do vento:</span>
+          <label class="radio-pill">
+            <input type="radio" name="unidade" value="kmh" checked>
+            <span>km/h</span>
+          </label>
+          <label class="radio-pill">
+            <input type="radio" name="unidade" value="ms">
+            <span>m/s</span>
+          </label>
+        </div>
+      </div>
+
+      <p class="stale" id="stale">⚠ Dados desatualizados</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Estatísticas</h2>
+        <p>Resumo por janela de tempo</p>
+      </div>
+
+      <div class="stats-cards" id="stats-cards">
+        <div class="stats-card">
+          <div class="stats-card-header">
+            <h3>Carregando...</h3>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script src="index.js"></script>
