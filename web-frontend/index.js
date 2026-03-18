@@ -4,110 +4,123 @@ let ultimaLeitura = null;
 document.querySelectorAll('input[name="unidade"]').forEach(el => {
   el.addEventListener("change", e => {
     unidade = e.target.value;
-    if (ultimaLeitura) atualizarValores(ultimaLeitura);
+    if (ultimaLeitura) {
+      atualizarValores(ultimaLeitura);
+    }
   });
 });
 
-function atualizarValores(data) {
-  ultimaLeitura = data;
-  const stale = data.temperatura.expirado || data.humidade.expirado || data.vento.expirado;
-  document.getElementById("stale").style.display = stale ? "block" : "none";
-
-  const velRaw = parseFloat(data.vento.valor);
-  const vel = isNaN(velRaw) ? null : (unidade === "kmh" ? velRaw * 3.6 : velRaw);
-  const temp = parseFloat(data.temperatura.valor);
-  const hum = parseFloat(data.humidade.valor);
-
-  document.getElementById("vel").innerText = vel !== null ? vel.toFixed(1) : "--";
-  document.getElementById("temp").innerText = !isNaN(temp) ? temp.toFixed(1) : "--";
-  document.getElementById("hum").innerText = !isNaN(hum) ? hum.toFixed(1) : "--";
-  document.getElementById("unidade").innerText = unidade === "kmh" ? "km/h" : "m/s";
-
-  const ts = new Date().toLocaleTimeString();
-  chart.data.labels.push(ts);
-  chart.data.datasets[0].data.push(vel ?? null);
-  chart.data.datasets[1].data.push(!isNaN(temp) ? temp : null);
-  chart.data.datasets[2].data.push(!isNaN(hum) ? hum : null);
-
-  if (chart.data.labels.length > 30) {
-    chart.data.labels.shift();
-    chart.data.datasets.forEach(ds => ds.data.shift());
-  }
-  chart.update();
+function formatNumber(value, decimals = 1) {
+  const num = parseFloat(value);
+  return Number.isFinite(num) ? num.toFixed(decimals) : "--";
 }
 
-const ctx = document.getElementById("grafico").getContext("2d");
-const chart = new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: "Velocidade do Vento",
-        data: [],
-        borderColor: "gold",
-        yAxisID: "y1",
-        fill: false,
-        tension: 0.3
-      },
-      {
-        label: "Temperatura (°C)",
-        data: [],
-        borderColor: "red",
-        yAxisID: "y2",
-        fill: false,
-        tension: 0.3
-      },
-      {
-        label: "Umidade (%)",
-        data: [],
-        borderColor: "blue",
-        yAxisID: "y3",
-        fill: false,
-        tension: 0.3
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    interaction: { mode: "index", intersect: false },
-    stacked: false,
-    scales: {
-      x: {
-        title: { display: true, text: "Hora" }
-      },
-      y1: {
-        type: "linear",
-        display: true,
-        position: "left",
-        title: { display: true, text: "Velocidade" }
-      },
-      y2: {
-        type: "linear",
-        display: true,
-        position: "right",
-        title: { display: true, text: "Temperatura" },
-        grid: { drawOnChartArea: false }
-      },
-      y3: {
-        type: "linear",
-        display: true,
-        position: "right",
-        offset: true,
-        title: { display: true, text: "Umidade" },
-        grid: { drawOnChartArea: false }
-      }
-    }
+function convertWindValue(value) {
+  const num = parseFloat(value);
+  if (!Number.isFinite(num)) {
+    return null;
   }
-});
+  return unidade === "kmh" ? num * 3.6 : num;
+}
+
+function getWindUnitLabel() {
+  return unidade === "kmh" ? "km/h" : "m/s";
+}
+
+function formatMetricValue(metricName, value) {
+  if (metricName === "vento") {
+    const converted = convertWindValue(value);
+    return converted !== null ? converted.toFixed(1) : "--";
+  }
+
+  return formatNumber(value, 1);
+}
+
+function getMetricLabel(metricName) {
+  switch (metricName) {
+    case "vento":
+      return `Velocidade do Vento (${getWindUnitLabel()})`;
+    case "temperatura":
+      return "Temperatura (°C)";
+    case "humidade":
+      return "Umidade (%)";
+    default:
+      return metricName;
+  }
+}
+
+function renderStatsTable(data) {
+  const tbody = document.getElementById("stats-body");
+  const metricsOrder = ["vento", "temperatura", "humidade"];
+  const windowsOrder = ["3h", "6h", "12h", "24h"];
+
+  let html = "";
+
+  metricsOrder.forEach(metricName => {
+    const metric = data[metricName];
+    if (!metric || !metric.estatisticas) {
+      return;
+    }
+
+    const stats = metric.estatisticas;
+
+    windowsOrder.forEach((windowKey, index) => {
+      const windowStats = stats[windowKey] || {};
+      const metricLabel = getMetricLabel(metricName);
+
+      html += `
+        <tr>
+          ${index === 0 ? `<td rowspan="${windowsOrder.length}" class="metric-name">${metricLabel}</td>` : ""}
+          <td>${windowKey}</td>
+          <td>${formatMetricValue(metricName, windowStats.max)}</td>
+          <td>${formatMetricValue(metricName, windowStats.media)}</td>
+          <td>${formatMetricValue(metricName, windowStats.min)}</td>
+        </tr>
+      `;
+    });
+  });
+
+  tbody.innerHTML = html || `
+    <tr>
+      <td colspan="5">Sem dados disponíveis.</td>
+    </tr>
+  `;
+}
+
+function atualizarValores(data) {
+  ultimaLeitura = data;
+
+  const stale =
+    data.temperatura?.expirado ||
+    data.humidade?.expirado ||
+    data.vento?.expirado;
+
+  document.getElementById("stale").style.display = stale ? "block" : "none";
+
+  const vel = convertWindValue(data.vento?.valor);
+  const temp = parseFloat(data.temperatura?.valor);
+  const hum = parseFloat(data.humidade?.valor);
+
+  document.getElementById("vel").innerText = vel !== null ? vel.toFixed(1) : "--";
+  document.getElementById("temp").innerText = Number.isFinite(temp) ? temp.toFixed(1) : "--";
+  document.getElementById("hum").innerText = Number.isFinite(hum) ? hum.toFixed(1) : "--";
+  document.getElementById("unidade").innerText = getWindUnitLabel();
+
+  renderStatsTable(data);
+}
 
 function fetchData() {
   fetch("/api/status")
     .then(resp => resp.json())
     .then(atualizarValores)
     .catch((e) => {
-      console.log('erro: ' + e);
+      console.log("erro: " + e);
       document.getElementById("stale").style.display = "block";
+      document.getElementById("stats-body").innerHTML = `
+        <tr>
+          <td colspan="5">Erro ao carregar dados.</td>
+        </tr>
+      `;
     });
 }
 

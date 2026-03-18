@@ -4,11 +4,13 @@ body {
   padding: 1em;
   background: #f0f0f0;
 }
+
 .container {
   max-width: 960px;
   margin: 0 auto;
   padding: 1em;
 }
+
 .box {
   background: white;
   padding: 1em;
@@ -16,20 +18,56 @@ body {
   border-radius: 8px;
   box-shadow: 0 0 5px #ccc;
 }
+
 label {
   margin-right: 1em;
 }
-canvas {
-  max-width: 100%;
-  height: auto;
-}
+
 .stale {
   color: red;
   font-weight: bold;
   display: none;
 }
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5em;
+}
+
+.stats-table th,
+.stats-table td {
+  border: 1px solid #ddd;
+  padding: 0.65em;
+  text-align: center;
+}
+
+.stats-table th {
+  background: #f7f7f7;
+}
+
+.stats-table td.metric-name {
+  font-weight: bold;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.stats-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
 @media (max-width: 600px) {
   .box p {
     font-size: 0.9em;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    font-size: 0.9em;
+    padding: 0.5em;
   }
 }
