@@ -106,12 +106,11 @@ def get_status():
     for measureType in dataHistory.keys():
         if len(dataHistory[measureType]) > 0:
             latest_entry = dataHistory[measureType][-1]
-
-    result[measureType] = {
-        "valor": latest_entry['value'],
-        "expirado": is_expired(latest_entry['timestamp']),
-        "estatisticas": build_stats_for_measure(measureType)
-    }
+        result[measureType] = {
+            "valor": latest_entry['value'],
+            "expirado": is_expired(latest_entry['timestamp']),
+            "estatisticas": build_stats_for_measure(measureType)
+        }
 
     return jsonify(result)
 
