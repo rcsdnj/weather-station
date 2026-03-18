@@ -9,13 +9,19 @@
 <body>
   <div class="container">
     <header class="page-header">
-      <h1>Estação Meteorológica</h1>
-      <p class="subtitle">Leituras atuais e resumo das últimas horas</p>
+      <div>
+        <h1>Estação Meteorológica</h1>
+        <p class="subtitle">Leituras atuais e resumo das últimas horas</p>
+      </div>
+      <div class="weather-badge">⛅ Estação online</div>
     </header>
 
     <section class="current-grid">
       <div class="metric-card metric-card-wind">
-        <div class="metric-label">Velocidade do vento</div>
+        <div class="metric-top">
+          <div class="metric-icon" aria-hidden="true">🌬️</div>
+          <div class="metric-label">Velocidade do vento</div>
+        </div>
         <div class="metric-value-row">
           <span id="vel" class="metric-value">--</span>
           <span id="unidade" class="metric-unit">km/h</span>
@@ -23,7 +29,10 @@
       </div>
 
       <div class="metric-card metric-card-temp">
-        <div class="metric-label">Temperatura</div>
+        <div class="metric-top">
+          <div class="metric-icon" aria-hidden="true">🌡️</div>
+          <div class="metric-label">Temperatura</div>
+        </div>
         <div class="metric-value-row">
           <span id="temp" class="metric-value">--</span>
           <span class="metric-unit">°C</span>
@@ -31,7 +40,10 @@
       </div>
 
       <div class="metric-card metric-card-hum">
-        <div class="metric-label">Humidade</div>
+        <div class="metric-top">
+          <div class="metric-icon" aria-hidden="true">💧</div>
+          <div class="metric-label">Humidade</div>
+        </div>
         <div class="metric-value-row">
           <span id="hum" class="metric-value">--</span>
           <span class="metric-unit">%</span>
@@ -63,8 +75,8 @@
 
     <section class="panel">
       <div class="panel-header">
-        <h2>Estatísticas</h2>
-        <p>Resumo por janela de tempo</p>
+        <h2>Resumo meteorológico</h2>
+        <p>Máximos, médias e mínimos por janela de tempo</p>
       </div>
 
       <div class="stats-cards" id="stats-cards">

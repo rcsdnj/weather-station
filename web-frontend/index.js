@@ -41,6 +41,19 @@ function formatMetricValue(metricName, value) {
 function getMetricLabel(metricName) {
   switch (metricName) {
     case "vento":
+      return "Vento";
+    case "temperatura":
+      return "Temperatura";
+    case "humidade":
+      return "Humidade";
+    default:
+      return metricName;
+  }
+}
+
+function getMetricTitle(metricName) {
+  switch (metricName) {
+    case "vento":
       return "Velocidade do vento";
     case "temperatura":
       return "Temperatura";
@@ -61,6 +74,19 @@ function getMetricUnit(metricName) {
       return "%";
     default:
       return "";
+  }
+}
+
+function getMetricIcon(metricName) {
+  switch (metricName) {
+    case "vento":
+      return "🌬️";
+    case "temperatura":
+      return "🌡️";
+    case "humidade":
+      return "💧";
+    default:
+      return "•";
   }
 }
 
@@ -94,7 +120,10 @@ function renderStatsCards(data) {
     html += `
       <article class="stats-card stats-card-${metricName}">
         <div class="stats-card-header">
-          <h3>${getMetricLabel(metricName)}</h3>
+          <div class="stats-card-title-wrap">
+            <span class="stats-icon" aria-hidden="true">${getMetricIcon(metricName)}</span>
+            <h3>${getMetricTitle(metricName)}</h3>
+          </div>
           <span class="stats-unit">${getMetricUnit(metricName)}</span>
         </div>
 
