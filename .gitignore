@@ -39,3 +39,12 @@
 
 # debug information files
 *.dwo
+
+# Python
+__pycache__/
+venv/
+
+# Weather data
+*.db
+*.db-wal
+*.db-shm

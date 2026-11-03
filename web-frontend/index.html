@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Estação Meteorológica - rcsdnj</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="vendor/uPlot.min.css">
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
@@ -13,11 +14,11 @@
         <h1>Estação Meteorológica</h1>
         <p class="subtitle">Leituras atuais e resumo das últimas horas</p>
       </div>
-      <div class="weather-badge">⛅ Estação online</div>
+      <div class="weather-badge" id="status-badge" role="status">Verificando…</div>
     </header>
 
     <section class="current-grid">
-      <div class="metric-card metric-card-wind">
+      <div class="metric-card metric-card-wind" data-metric="vento">
         <div class="metric-top">
           <div class="metric-icon" aria-hidden="true">🌬️</div>
           <div class="metric-label">Velocidade do vento</div>
@@ -26,9 +27,10 @@
           <span id="vel" class="metric-value">--</span>
           <span id="unidade" class="metric-unit">km/h</span>
         </div>
+        <p class="metric-age">&nbsp;</p>
       </div>
 
-      <div class="metric-card metric-card-temp">
+      <div class="metric-card metric-card-temp" data-metric="temperatura">
         <div class="metric-top">
           <div class="metric-icon" aria-hidden="true">🌡️</div>
           <div class="metric-label">Temperatura</div>
@@ -37,9 +39,10 @@
           <span id="temp" class="metric-value">--</span>
           <span class="metric-unit">°C</span>
         </div>
+        <p class="metric-age">&nbsp;</p>
       </div>
 
-      <div class="metric-card metric-card-hum">
+      <div class="metric-card metric-card-hum" data-metric="humidade">
         <div class="metric-top">
           <div class="metric-icon" aria-hidden="true">💧</div>
           <div class="metric-label">Humidade</div>
@@ -48,6 +51,7 @@
           <span id="hum" class="metric-value">--</span>
           <span class="metric-unit">%</span>
         </div>
+        <p class="metric-age">&nbsp;</p>
       </div>
     </section>
 
@@ -69,8 +73,44 @@
           </label>
         </div>
       </div>
+    </section>
 
-      <p class="stale" id="stale">⚠ Dados desatualizados</p>
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Histórico</h2>
+        <p>A linha mostra a média e a faixa sombreada vai do mínimo ao máximo</p>
+      </div>
+
+      <div class="unit-selector history-periods" role="radiogroup" aria-label="Período do histórico">
+        <span class="control-label">Período:</span>
+        <label class="radio-pill"><input type="radio" name="periodo" value="3h"><span>3 h</span></label>
+        <label class="radio-pill"><input type="radio" name="periodo" value="24h" checked><span>24 h</span></label>
+        <label class="radio-pill"><input type="radio" name="periodo" value="7d"><span>7 dias</span></label>
+        <label class="radio-pill"><input type="radio" name="periodo" value="30d"><span>30 dias</span></label>
+        <label class="radio-pill"><input type="radio" name="periodo" value="1y"><span>1 ano</span></label>
+      </div>
+
+      <p class="history-note" id="history-note" hidden>Não foi possível atualizar o histórico.</p>
+
+      <div class="history-charts" id="history-charts">
+        <figure class="history-chart" data-metric="vento">
+          <figcaption><span class="history-key history-key-vento" aria-hidden="true"></span><span>Velocidade do vento (<span class="history-unit"></span>)</span></figcaption>
+          <div class="history-plot"><p class="history-empty" hidden>Sem dados neste período</p></div>
+        </figure>
+        <figure class="history-chart" data-metric="temperatura">
+          <figcaption><span class="history-key history-key-temperatura" aria-hidden="true"></span><span>Temperatura (<span class="history-unit"></span>)</span></figcaption>
+          <div class="history-plot"><p class="history-empty" hidden>Sem dados neste período</p></div>
+        </figure>
+        <figure class="history-chart" data-metric="humidade">
+          <figcaption><span class="history-key history-key-humidade" aria-hidden="true"></span><span>Humidade (<span class="history-unit"></span>)</span></figcaption>
+          <div class="history-plot"><p class="history-empty" hidden>Sem dados neste período</p></div>
+        </figure>
+      </div>
+
+      <details class="history-table-details" id="history-table-details">
+        <summary>Ver dados em tabela</summary>
+        <div class="history-table-wrapper" id="history-table-wrapper"></div>
+      </details>
     </section>
 
     <section class="panel">
@@ -89,6 +129,8 @@
     </section>
   </div>
 
+  <script src="vendor/uPlot.iife.min.js"></script>
   <script src="index.js"></script>
+  <script src="historico.js"></script>
 </body>
 </html>

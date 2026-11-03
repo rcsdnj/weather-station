@@ -1,130 +1,266 @@
-from flask import Flask, request, jsonify
-from datetime import datetime, timedelta
+import os
+import sqlite3
+import time
+
+from flask import Flask, g, jsonify, request
 
 app = Flask(__name__)
+app.config["DB_PATH"] = os.environ.get(
+    "WEATHER_DB_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "weather.db"),
+)
 
-MAX_HISTORY_LENGTH = 524288
-historyAchievedMaxSize = False
+METRICS = ("temperatura", "humidade", "vento")
 
-dataHistory = {'temperatura': [], 'humidade': [], 'vento': []}
+# Plausible (min, max) per metric; anything outside is rejected on ingest.
+LIMITS = {
+    "temperatura": (-40.0, 80.0),  # DHT22 operating range, in °C
+    "humidade": (0.0, 100.0),      # %
+    "vento": (0.0, 100.0),         # m/s
+}
+
+EXPIRY_SECONDS = 5 * 60
+STATS_WINDOW_HOURS = (3, 6, 12, 24)
+
+# periodo -> (span in seconds, bucket size in seconds)
+HISTORY_PERIODS = {
+    "3h": (3 * 3600, 60),
+    "24h": (24 * 3600, 5 * 60),
+    "7d": (7 * 86400, 30 * 60),
+    "30d": (30 * 86400, 2 * 3600),
+    "1y": (365 * 86400, 86400),
+}
+
+RAW_RETENTION_SECONDS = 7 * 86400
+ROLLUP_RETENTION_SECONDS = 2 * 365 * 86400
+PURGE_INTERVAL_SECONDS = 3600
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS readings (
+    metric TEXT NOT NULL,
+    ts_ms INTEGER NOT NULL,
+    value REAL NOT NULL,
+    PRIMARY KEY (metric, ts_ms)
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS readings_1m (
+    metric TEXT NOT NULL,
+    minute_ts INTEGER NOT NULL,
+    n INTEGER NOT NULL,
+    sum REAL NOT NULL,
+    min REAL NOT NULL,
+    max REAL NOT NULL,
+    PRIMARY KEY (metric, minute_ts)
+) WITHOUT ROWID;
+"""
+
+last_purge_ms = 0
 
 
-def is_expired(timestamp):
-    if timestamp is None:
-        return True
-    return (datetime.now() - timestamp) > timedelta(minutes=5)
+def now_ms():
+    return int(time.time() * 1000)
 
 
-def get_values_in_last_hours(measure_type, hours):
-    cutoff = datetime.now() - timedelta(hours=hours)
-    return [
-        entry["value"]
-        for entry in dataHistory[measure_type]
-        if entry.get("timestamp") is not None
-        and entry["timestamp"] >= cutoff
-        and entry.get("value") is not None
-    ]
+def connect():
+    connection = sqlite3.connect(app.config["DB_PATH"], timeout=5)
+    connection.execute("PRAGMA synchronous=NORMAL")
+    return connection
 
 
-def calculate_stats(values):
-    if not values:
-        return {
-            "max": None,
-            "media": None,
-            "min": None
-        }
-
-    return {
-        "max": max(values),
-        "media": sum(values) / len(values),
-        "min": min(values)
-    }
+def init_db():
+    connection = connect()
+    try:
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.executescript(SCHEMA)
+    finally:
+        connection.close()
 
 
-def build_stats_for_measure(measure_type):
+def get_db():
+    if "db" not in g:
+        g.db = connect()
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(_exception):
+    connection = g.pop("db", None)
+    if connection is not None:
+        connection.close()
+
+
+def parse_measure(payload, field, metric):
+    """Return the value of `field` if valid for `metric`, otherwise None."""
+    value = payload.get(field)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    low, high = LIMITS[metric]
+    # The range check also rejects NaN and infinity.
+    if not low <= value <= high:
+        return None
+    return float(value)
+
+
+def store_readings(measures):
+    """Store {metric: value} atomically, updating raw data and rollups."""
+    global last_purge_ms
+
+    timestamp = now_ms()
+    minute_ts = timestamp // 60000 * 60
+    db = get_db()
+
+    with db:
+        for metric, value in measures.items():
+            db.execute(
+                "INSERT OR REPLACE INTO readings (metric, ts_ms, value) VALUES (?, ?, ?)",
+                (metric, timestamp, value),
+            )
+            db.execute(
+                """
+                INSERT INTO readings_1m (metric, minute_ts, n, sum, min, max)
+                VALUES (?, ?, 1, ?, ?, ?)
+                ON CONFLICT (metric, minute_ts) DO UPDATE SET
+                    n = n + 1,
+                    sum = sum + excluded.sum,
+                    min = MIN(min, excluded.min),
+                    max = MAX(max, excluded.max)
+                """,
+                (metric, minute_ts, value, value, value),
+            )
+
+        if timestamp - last_purge_ms >= PURGE_INTERVAL_SECONDS * 1000:
+            purge_expired(db, timestamp)
+            last_purge_ms = timestamp
+
+
+def purge_expired(db, timestamp):
+    db.execute(
+        "DELETE FROM readings WHERE ts_ms < ?",
+        (timestamp - RAW_RETENTION_SECONDS * 1000,),
+    )
+    db.execute(
+        "DELETE FROM readings_1m WHERE minute_ts < ?",
+        (timestamp // 1000 - ROLLUP_RETENTION_SECONDS,),
+    )
+
+
+def build_stats_for_measure(db, metric, timestamp):
     stats = {}
+    now_s = timestamp // 1000
 
-    for hours in [3, 6, 12, 24]:
-        values = get_values_in_last_hours(measure_type, hours)
-
-        if values:
-            stats[f"{hours}h"] = {
-                "max": max(values),
-                "media": sum(values) / len(values),
-                "min": min(values)
-            }
-        else:
-            stats[f"{hours}h"] = {
-                "max": None,
-                "media": None,
-                "min": None
-            }
+    for hours in STATS_WINDOW_HOURS:
+        cutoff = (now_s - hours * 3600) // 60 * 60
+        maximum, average, minimum = db.execute(
+            """
+            SELECT MAX(max), SUM(sum) / SUM(n), MIN(min)
+            FROM readings_1m
+            WHERE metric = ? AND minute_ts >= ?
+            """,
+            (metric, cutoff),
+        ).fetchone()
+        stats[f"{hours}h"] = {"max": maximum, "media": average, "min": minimum}
 
     return stats
 
 
 @app.route("/api/temperatura", methods=["POST"])
 def post_temperatura():
-    try:
-        payload = request.get_json()
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return "Erro: JSON inválido", 400
 
-        postTime = datetime.now()
-        temperatureEntry = {'value': payload.get("temperatura"), 'timestamp': postTime}
-        humidityEntry = {'value': payload.get("humidade"), 'timestamp': postTime}
+    temperature = parse_measure(payload, "temperatura", "temperatura")
+    humidity = parse_measure(payload, "humidade", "humidade")
+    if temperature is None or humidity is None:
+        return "Erro: temperatura ou humidade inválida", 400
 
-        dataHistory['temperatura'].append(temperatureEntry)
-        dataHistory['humidade'].append(humidityEntry)
-
-        pruneHistoryIfNeeded()
-
-        return "OK", 200
-    except Exception as e:
-        return f"Erro: {str(e)}", 400
+    store_readings({"temperatura": temperature, "humidade": humidity})
+    return "OK", 200
 
 
 @app.route("/api/vento", methods=["POST"])
 def post_vento():
-    try:
-        payload = request.get_json()
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return "Erro: JSON inválido", 400
 
-        postTime = datetime.now()
-        windEntry = {'value': payload.get("velocidade"), 'timestamp': postTime}
+    speed = parse_measure(payload, "velocidade", "vento")
+    if speed is None:
+        return "Erro: velocidade inválida", 400
 
-        dataHistory['vento'].append(windEntry)
-
-        pruneHistoryIfNeeded()
-
-        return "OK", 200
-    except Exception as e:
-        return f"Erro: {str(e)}", 400
+    store_readings({"vento": speed})
+    return "OK", 200
 
 
 @app.route("/api/status", methods=["GET"])
 def get_status():
+    db = get_db()
+    timestamp = now_ms()
     result = {}
 
-    for measureType in dataHistory.keys():
-        if len(dataHistory[measureType]) > 0:
-            latest_entry = dataHistory[measureType][-1]
-        result[measureType] = {
-            "valor": latest_entry['value'],
-            "expirado": is_expired(latest_entry['timestamp']),
-            "estatisticas": build_stats_for_measure(measureType)
+    for metric in METRICS:
+        latest = db.execute(
+            "SELECT value, ts_ms FROM readings WHERE metric = ? ORDER BY ts_ms DESC LIMIT 1",
+            (metric,),
+        ).fetchone()
+
+        if latest is None:
+            value, age_seconds = None, None
+        else:
+            value = latest[0]
+            age_seconds = max(0, (timestamp - latest[1]) // 1000)
+
+        result[metric] = {
+            "valor": value,
+            "idade_s": age_seconds,
+            "expirado": age_seconds is None or age_seconds > EXPIRY_SECONDS,
+            "estatisticas": build_stats_for_measure(db, metric, timestamp),
         }
 
     return jsonify(result)
 
 
-def pruneHistoryIfNeeded():
-    global historyAchievedMaxSize
+@app.route("/api/historico", methods=["GET"])
+def get_historico():
+    periodo = request.args.get("periodo")
+    if periodo not in HISTORY_PERIODS:
+        return "Erro: período inválido", 400
 
-    for measureType in dataHistory.keys():
-        if len(dataHistory[measureType]) >= MAX_HISTORY_LENGTH:
-            del dataHistory[measureType][0]
-            if historyAchievedMaxSize is False:
-                print(f"Historic achieved {MAX_HISTORY_LENGTH} entries, removing the oldest")
-                historyAchievedMaxSize = True
+    span, bucket = HISTORY_PERIODS[periodo]
+    now_s = now_ms() // 1000
+    start = (now_s - span) // bucket * bucket
+    times = list(range(start, now_s // bucket * bucket + bucket, bucket))
+    index_by_time = {t: i for i, t in enumerate(times)}
+
+    db = get_db()
+    series = {}
+
+    for metric in METRICS:
+        # Buckets with no rows stay null, so outages render as gaps.
+        averages = [None] * len(times)
+        minimums = [None] * len(times)
+        maximums = [None] * len(times)
+
+        rows = db.execute(
+            """
+            SELECT minute_ts / :bucket * :bucket AS bucket_ts,
+                   SUM(sum) / SUM(n), MIN(min), MAX(max)
+            FROM readings_1m
+            WHERE metric = :metric AND minute_ts >= :start
+            GROUP BY bucket_ts
+            """,
+            {"bucket": bucket, "metric": metric, "start": start},
+        )
+        for bucket_ts, average, minimum, maximum in rows:
+            i = index_by_time.get(bucket_ts)
+            if i is not None:
+                averages[i], minimums[i], maximums[i] = average, minimum, maximum
+
+        series[metric] = {"media": averages, "min": minimums, "max": maximums}
+
+    return jsonify({"periodo": periodo, "intervalo_s": bucket, "t": times, "series": series})
 
 
 if __name__ == "__main__":
+    init_db()
     app.run(host="0.0.0.0", port=5000)

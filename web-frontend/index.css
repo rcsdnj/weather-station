@@ -73,6 +73,26 @@ body {
   font-weight: 600;
 }
 
+.weather-badge-ok {
+  color: #1c6b3f;
+  background: #e4f6ec;
+  border-color: #b5e2c8;
+}
+
+.weather-badge-parcial {
+  color: #7a5000;
+  background: #fff1cf;
+  border-color: #efd28a;
+  white-space: normal;
+}
+
+.weather-badge-offline,
+.weather-badge-sem-conexao {
+  color: #b42318;
+  background: #ffe4e1;
+  border-color: #f4b6b0;
+}
+
 .current-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -171,6 +191,26 @@ body {
   font-weight: 600;
 }
 
+.metric-age {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.metric-card.is-stale .metric-value,
+.metric-card.is-stale .metric-unit {
+  opacity: 0.4;
+}
+
+.metric-card.is-stale .metric-age {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.metric-card.is-stale::before {
+  background: var(--border);
+}
+
 .panel {
   padding: 18px;
   margin-bottom: 16px;
@@ -237,15 +277,181 @@ body {
   font-weight: 600;
 }
 
-.stale {
-  margin: 14px 0 0;
+.radio-pill input:focus-visible + span {
+  outline: 2px solid #2f6fae;
+  outline-offset: 2px;
+}
+
+.history-periods {
+  margin-top: 14px;
+}
+
+.history-note {
+  margin: 12px 0 0;
   color: #b42318;
-  background: #ffe4e1;
-  border: 1px solid #f4b6b0;
-  padding: 10px 12px;
-  border-radius: 12px;
+  font-size: 0.9rem;
   font-weight: 600;
+}
+
+.history-charts {
+  display: grid;
+  gap: 18px;
+  margin-top: 16px;
+  transition: opacity 0.15s ease;
+}
+
+.history-charts.is-loading {
+  opacity: 0.6;
+}
+
+.history-chart {
+  margin: 0;
+  min-width: 0;
+}
+
+.history-chart figcaption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.history-key {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.history-key-none {
+  background: transparent;
+}
+
+.history-key-vento {
+  background: var(--wind);
+}
+
+.history-key-temperatura {
+  background: var(--temp);
+}
+
+.history-key-humidade {
+  background: var(--hum);
+}
+
+.history-plot {
+  position: relative;
+  min-height: 200px;
+}
+
+.history-plot .u-cursor-x {
+  border-right: 1px solid var(--muted);
+}
+
+.history-empty {
+  position: absolute;
+  inset: 0 0 32px 48px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.history-empty[hidden],
+.history-tooltip[hidden],
+.history-note[hidden] {
   display: none;
+}
+
+.history-tooltip {
+  position: absolute;
+  z-index: 2;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.history-tooltip-time {
+  margin-bottom: 4px;
+  color: var(--muted);
+}
+
+.history-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.history-tooltip-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.history-tooltip-row span:last-child {
+  color: var(--muted);
+}
+
+.history-table-details {
+  margin-top: 16px;
+}
+
+.history-table-details summary {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.history-table-wrapper {
+  max-height: 360px;
+  margin-top: 10px;
+  overflow: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.history-table th,
+.history-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.history-table thead th {
+  position: sticky;
+  background: #ffffff;
+  color: var(--muted);
+}
+
+.history-table thead tr:first-child th {
+  top: 0;
+  text-align: center;
+}
+
+.history-table thead tr:last-child th {
+  top: 27px;
+}
+
+.history-table tbody th {
+  font-weight: 600;
+  text-align: left;
 }
 
 .stats-cards {
@@ -340,6 +546,11 @@ body {
   font-weight: 700;
   padding: 0 6px 6px;
   white-space: nowrap;
+}
+
+.stats-table thead th:first-child {
+  /* With a fixed layout, equal columns are too narrow for "Últimas 24h". */
+  width: 38%;
 }
 
 .stats-table thead th:not(:first-child) {
