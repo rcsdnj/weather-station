@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Estação Meteorológica</string>
+    <string name="tile_description">Vento, temperatura e humidade da estação</string>
+</resources>
